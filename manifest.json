@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "name": "Dinosaur Pill",
+  "version": "0.1",
+
+  "content_scripts": [
+  ],
+
+  "web_accessible_resources": [
+  ]
+}
