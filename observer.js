@@ -39,7 +39,6 @@ chrome.tabs.onUpdated.addListener(function(tabID, changeInfo, tab) {
   }
 
   chrome.windows.get(tab.windowId, function(win) {
-    console.log('win', win);
     if (!win.focused || win.state !== "normal") {
       return;
     }
@@ -68,4 +67,8 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function(nav) {
     tabID: nav.tabId,
     timestamp: Date.now()
   }));
+});
+
+chrome.runtime.onSuspend.addListener(function() {
+  DinosaurPill.suspend();
 });

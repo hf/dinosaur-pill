@@ -6,7 +6,8 @@ window.DinosaurPill = (function(DinosaurPill) {
       Events: {
         LOOKING_AT:   'looking-at',
         ATTEMPT_LOOKING_AT: 'attempt-to-look-at',
-        TAKEDOWN: 'takedown'
+        TAKEDOWN: 'takedown',
+        SUSPENDING: 'suspending'
       }
     };
   }
@@ -25,6 +26,10 @@ window.DinosaurPill = (function(DinosaurPill) {
 
   DinosaurPill.takedown = function takedown(lookingAt, website) {
     DinosaurPill.trigger(DinosaurPill.Events.TAKEDOWN, lookingAt, website);
+  };
+
+  DinosaurPill.suspend = function suspend() {
+    DinosaurPill.trigger(DinosaurPill.Events.SUSPENDING);
   };
 
   if (DinosaurPill.DEBUG) {

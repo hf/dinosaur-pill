@@ -15,6 +15,14 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
 
       this.trigger('dequeued', this);
     }, this);
+
+    DinosaurPill.on(DinosaurPill.Events.SUSPENDING, function() {
+      console.log('suspending');
+
+      if (this.db.isOpen()) {
+        this.db.close();
+      }
+    }, this);
   };
 
   Ledger.ObjectStores = Ledger.prototype.ObjectStores = {
@@ -154,8 +162,64 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     idAttribute: Ledger.ObjectStores.KeyPaths.WEBSITES,
 
     defaults: {
-      strategies: [],
-      dayStartsAt: null
+      dayStartsAt: (8 * 3600),
+      dailyQuota: null,
+      currentQuota: null,
+      currentDate: null
+    },
+
+    validate: function(attributes, options) {
+      if (!attributes.dayStartsAt) {
+        return "dayStartsAt is a required attribute.";
+      }
+
+      var dayStartsAt = attributes.dayStartsAt;
+
+      if (!_.isNumber(dayStartsAt)) {
+        return "dayStartsAt must be a number!";
+      }
+
+      if (dayStartsAt < 0 || dayStartsAt > ((24 * 3600) - 1)) {
+        return "dayStartsAt must be a positive number from [0 to 8400)."
+      }
+
+      if (!attributes.currentDate) {
+        return "currentDate is a required attribute.";
+      }
+
+      var currentDate = attributes.currentDate;
+
+      if (!_.isNumber(currentDate)) {
+        return "currentDate must be a number";
+      }
+
+      if (currentDate <= 0) {
+        return "currentDate is a positive number.";
+      }
+
+      if (!_.isNull(attributes.currentQuota) && !_.isUndefined(attributes.currentQuota)) {
+        var currentQuota = attributes.currentQuota;
+
+        if (!_.isNumber(currentQuota)) {
+          return "currentQuota must be a number";
+        }
+
+        if (currentQuota < 0 || currentQuota > ((24 * 8400) - 1)) {
+          return "currentQuota is a number from [0 to 8400).";
+        }
+      }
+
+      if (!_.isNull(attributes.dailyQuota) && !_.isUndefined(attributes.dailyQuota)) {
+        var dailyQuota = attributes.dailyQuota;
+
+        if (!_.isNumber(dailyQuota)) {
+          return "dailyQuota must be a number";
+        }
+
+        if (dailyQuota < 0 || dailyQuota > ((24 * 8400) - 1)) {
+          return "dailyQuota is a number from [0 to 8400).";
+        }
+      }
     }
   }, {
     findForURI: function findForURI(db, uri, callback) {
@@ -164,7 +228,6 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
         , rq = tx.get(websites, uri.domain());
 
       tx.on('complete', function() {
-        console.log(rq.result);
         var result = rq.result;
 
         if (result) {
