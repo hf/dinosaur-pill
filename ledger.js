@@ -5,8 +5,6 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     this._queue = [];
 
     this._db.on('ready', function() {
-      console.log('rready');
-
       this.trigger('dequeuing', this);
 
       _.each(this._queue, function(action) {
@@ -154,6 +152,11 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
   Ledger.Website = Ledger.Model.extend({
     objectStore: Ledger.ObjectStores.WEBSITES,
     idAttribute: Ledger.ObjectStores.KeyPaths.WEBSITES,
+
+    defaults: {
+      strategies: [],
+      dayStartsAt: null
+    }
   }, {
     findForURI: function findForURI(db, uri, callback) {
       var websites = Ledger.ObjectStores.WEBSITES
@@ -186,6 +189,14 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     configurable: false,
     get: function() {
       return this._db;
+    }
+  });
+
+  Object.defineProperty(Ledger.prototype, 'currentEyes', {
+    enumerable: false,
+    configurable: false,
+    get: function() {
+      return this._currentEyes;
     }
   });
 

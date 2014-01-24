@@ -6,8 +6,8 @@ window.DinosaurPill.Matcher = (function matcher(DinosaurPill, Backbone) {
       this.match(lookingAt);
     }, this);
 
-    DinosaurPill.on(DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt) {
-      this.match(lookingAt);
+    DinosaurPill.on(DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt, previouslyLookedAt) {
+      this.match(lookingAt, previouslyLookedAt);
     }, this);
 
     this.on('match', function(lookingAt, result) {
@@ -20,7 +20,7 @@ window.DinosaurPill.Matcher = (function matcher(DinosaurPill, Backbone) {
 
   _.extend(Matcher.prototype, Backbone.Events);
 
-  Matcher.prototype.match = function match(lookingAt) {
+  Matcher.prototype.match = function match(lookingAt, previouslyLookedAt) {
     if (lookingAt.isNothing()) {
       this.trigger('no-match', lookingAt);
       return;

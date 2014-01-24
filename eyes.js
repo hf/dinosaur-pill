@@ -78,5 +78,42 @@ window.DinosaurPill.LookingAt = (function(DinosaurPill, Backbone) {
     return "@" + this.timestamp + " - Looking at tab#" + this.tabID + ", URI: " + this.rawURI;
   };
 
+  LookingAt.prototype.toObject = function toObject() {
+    return { uri: this.rawURI, timestamp: this.timestamp, tabID: this.tabID };
+  };
+
+  LookingAt.prototype.toJSON = function toJSON() {
+    return JSON.stringify(this.toObject());
+  };
+
   return LookingAt;
 })(window.DinosaurPill, window.Backbone);
+
+(function current_eyes(DinosaurPill) {
+  var property = 'dinosaur-pill-current-eyes'
+    , current_eyes = window.localStorage.getItem(property);
+
+  if (current_eyes) {
+    current_eyes = JSON.parse(current_eyes);
+  }
+
+  if (current_eyes) {
+    current_eyes = new DinosaurPill.LookingAt(current_eyes);
+  }
+
+  Object.defineProperty(DinosaurPill, 'CURRENT_EYES', {
+    get: function() {
+      return current_eyes;
+    },
+
+    set: function(eyes) {
+      current_eyes = eyes;
+
+      if (eyes) {
+        eyes = eyes.toObject();
+      }
+
+      window.localStorage.setItem(property, JSON.stringify(eyes));
+    }
+  });
+})(window.DinosaurPill);
