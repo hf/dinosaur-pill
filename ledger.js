@@ -17,10 +17,6 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
 
       this.trigger('dequeued', this);
     }, this);
-
-    DinosaurPill.on(DinosaurPill.Events.LOOKING_AT + " " + DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt) {
-      this.lookingAt(lookingAt);
-    }, this);
   };
 
   Ledger.ObjectStores = Ledger.prototype.ObjectStores = {
@@ -193,40 +189,15 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     }
   });
 
-  Ledger.prototype.enqueue = function enqueue(action) {
+  Ledger.prototype.enqueue = function enqueue(action, context) {
+    context = context || {};
+
     if (_.isNull(this._queue)) {
-      action(this.db, this);
+      action.call(context, this.db, this);
       return;
     }
 
-    this._queue.push(action);
-  };
-
-  Ledger.prototype.lookingAt = function lookingAt(lookingAt) {
-    if (lookingAt.isNothing()) {
-      return;
-    }
-
-    this.enqueue(_.bind(function() {
-        Ledger.Website.findForURI(this.db, lookingAt.uri, function(error, result) {
-        console.log('found-for-uri', error, result);
-
-        if (error) {
-          return;
-        }
-
-        if (_.isObject(result)) {
-          chrome.tabs.update(lookingAt.tabID, { url: chrome.extension.getURL("/pill.html") });
-
-          chrome.tabs.query({ url: ("*://*." + result.get("domain") + "/*") }, function(tabs) {
-            console.log('tabs', tabs, ("*://*." + result.get("domain") + "/*"));
-            _.each(tabs, function(tab) {
-              chrome.tabs.update(tab.id, { url: chrome.extension.getURL("/pill.html") });
-            });
-          });
-        }
-      });
-    }, this));
+    this._queue.push(_.bind(action, context));
   };
 
   return new Ledger();

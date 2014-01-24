@@ -5,7 +5,8 @@ window.DinosaurPill = (function(DinosaurPill) {
 
       Events: {
         LOOKING_AT:   'looking-at',
-        ATTEMPT_LOOKING_AT: 'attempt-to-look-at'
+        ATTEMPT_LOOKING_AT: 'attempt-to-look-at',
+        TAKEDOWN: 'takedown'
       }
     };
   }
@@ -20,10 +21,18 @@ window.DinosaurPill = (function(DinosaurPill) {
     DinosaurPill.trigger(DinosaurPill.Events.ATTEMPT_LOOKING_AT, lookingAt);
   };
 
+  DinosaurPill.takedown = function takedown(lookingAt, website) {
+    DinosaurPill.trigger(DinosaurPill.Events.TAKEDOWN, lookingAt, website);
+  };
+
   if (DinosaurPill.DEBUG) {
     DinosaurPill.on(DinosaurPill.Events.LOOKING_AT, function(lookingAt) {
       console.log('looking-at', lookingAt.toString());
-    }, window);
+    }, {});
+
+    DinosaurPill.on(DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt)) {
+      console.log('attempt-looking-at', lookingAt.toString());
+    }, {});
   }
 
   return DinosaurPill;

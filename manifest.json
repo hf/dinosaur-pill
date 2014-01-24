@@ -21,7 +21,9 @@
       "eyes.js",
       "database.js",
       "ledger.js",
-      "observer.js"
+      "observer.js",
+      "matcher.js",
+      "destroyer.js"
     ],
 
     "persistent": false
