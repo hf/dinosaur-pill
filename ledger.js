@@ -7,9 +7,9 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     this._db.on('ready', function() {
       this.trigger('dequeuing', this);
 
-      _.each(this._queue, function(action) {
+      _.each(this._queue, _.bind(function(action) {
         action(this.db, this);
-      });
+      }, this));
 
       this._queue = null;
 
@@ -189,14 +189,6 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     configurable: false,
     get: function() {
       return this._db;
-    }
-  });
-
-  Object.defineProperty(Ledger.prototype, 'currentEyes', {
-    enumerable: false,
-    configurable: false,
-    get: function() {
-      return this._currentEyes;
     }
   });
 
