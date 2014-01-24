@@ -36,6 +36,7 @@
     "initialize.js",
     "database.js",
     "eyes.js",
+    "ledger.js",
     "pill.html",
 
     /* GENERAL LIBRARIES */

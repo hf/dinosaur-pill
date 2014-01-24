@@ -14,6 +14,11 @@ window.DinosaurPill.Database = (function(DinosaurPill, Backbone) {
         migrations: null
       });
 
+    this._db = null;
+    this._name = null;
+    this._version = null;
+    this._migrations = null;
+
     if (options.open) {
       this.open(name, version, options.migrations);
     }
@@ -337,13 +342,19 @@ window.DinosaurPill.Database = (function(DinosaurPill, Backbone) {
 
     this._name = name;
     this._version = version;
-    this._migrations = migrations;
+    this._migrations = migrations || null;
 
     var request = window.indexedDB.open(name, version)
       , migrate = _.bind(function(event) {
         this.trigger('upgrading', { oldVersion: event.oldVersion, newVersion: event.newVersion });
 
-        migrations.run(request.result, event.newVersion, event.oldVersion);
+        if (!_.isFunction(migrations.run)) {
+          _.each(this._migrations, function(migration, index) {
+            migration.call({}, request.result, event.newVersion, event.oldVersion, index);
+          });
+        } else {
+          this._migrations.run(request.result, event.newVersion, event.oldVersion);
+        }
 
         this.trigger('upgraded', event.newVersion);
       }, this);
@@ -363,6 +374,7 @@ window.DinosaurPill.Database = (function(DinosaurPill, Backbone) {
         if (_.isNull(event.newVersion) || _.isNull(event.version)) {
           this.close();
         } else {
+          console.log('here');
           this.trigger('version-change', event);
           if (migrations) {
             migrate(event);
@@ -464,6 +476,10 @@ window.DinosaurPill.Database = (function(DinosaurPill, Backbone) {
   };
 
   Database.prototype.transaction = function transaction(objectStores, mode) {
+    if (!this.isOpen()) {
+      return null;
+    }
+
     return new Database.Transaction(this, objectStores, mode || "readonly");
   };
 
