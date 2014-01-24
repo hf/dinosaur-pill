@@ -336,7 +336,7 @@ window.DinosaurPill.Database = (function(DinosaurPill, Backbone) {
   };
 
   Database.prototype.open = function open(name, version, migrations) {
-    if (migrations && migrations.length < version) {
+    if (migrations && !_.isFunction(migrations.run) && migrations.length < version) {
       throw new Error("Cannot open database with too few migrations.");
     }
 
