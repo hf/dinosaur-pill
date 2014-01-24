@@ -1,21 +1,8 @@
 (function() {
-  var expect = chai.expect;
-
-  describe('DinosaurPill.Database', function() {
-    describe('self', function() {
-      it('should extend Backbone.Events', function() {
-        var proto = DinosaurPill.Database.prototype;
-
-        expect(proto).to.have.property('on');
-        expect(proto).to.have.property('off');
-        expect(proto).to.have.property('once');
-        expect(proto).to.have.property('trigger');
-      });
-    });
-
-    describe('constructor', function() {
-      var clearDatabase = function(done) {
-        var rq = window.indexedDB.deleteDatabase("dinosaur-pill-test");
+  var expect = chai.expect
+    , databaseName = "dinosaur-pill-test"
+    , clearDatabase = function(done) {
+        var rq = window.indexedDB.deleteDatabase(databaseName);
 
         rq.onsuccess = function() {
           done();
@@ -26,11 +13,24 @@
         };
       };
 
+  describe('DinosaurPill.Database', function() {
+    describe('self', function() {
+      it('should support events', function() {
+        var proto = DinosaurPill.Database.prototype;
+
+        expect(proto).to.have.property('on');
+        expect(proto).to.have.property('off');
+        expect(proto).to.have.property('once');
+        expect(proto).to.have.property('trigger');
+      });
+    });
+
+    describe('constructor', function() {
       afterEach(clearDatabase);
       beforeEach(clearDatabase);
 
-      it('should construct a new DinosaurPill.Database without opening', function() {
-        var db = new DinosaurPill.Database("dinosaur-pill-test", 1, { open: false });
+      it('should construct a new database without opening', function() {
+        var db = new DinosaurPill.Database(databaseName, 1, { open: false });
 
         expect(db.isOpen()).to.be.false;
         expect(db.db).to.be.null;
@@ -41,16 +41,18 @@
         db.close();
       });
 
-      it('should open (create) a new DinosaurPill.Database and delete it', function(done) {
-        var db = new DinosaurPill.Database("dinosaur-pill-test", 1);
+      it('should open (create) and delete a database', function(done) {
+        var db = new DinosaurPill.Database(databaseName, 1);
 
         expect(db.isOpen()).to.be.false;
+        expect(db.db).to.be.null;
         expect(db.name).to.not.be.null;
         expect(db.version).to.not.be.null;
         expect(db.migrations).to.be.null;
 
         db.on('ready', function() {
           expect(db.isOpen()).to.be.true;
+          expect(db.db).to.not.be.null;
           expect(db.name).to.not.be.null;
           expect(db.version).to.not.be.null;
           expect(db.migrations).to.be.null;
@@ -64,6 +66,7 @@
 
         db.on('deleted', function() {
           expect(db.isOpen()).to.be.false;
+          expect(db.db).to.be.null;
           expect(db.name).to.be.null;
           expect(db.version).to.be.null;
           expect(db.migrations).to.be.null;
@@ -72,7 +75,7 @@
         });
       });
 
-      it('should migrate DinosaurPill.Database with an array migrations', function(done) {
+      it('should migrate with an array migrations', function(done) {
         var migrations = []
           , version = 100
           , i = 0
@@ -93,7 +96,7 @@
           });
         };
 
-        var db = new DinosaurPill.Database("dinosaur-pill-test", version, { migrations: migrations });
+        var db = new DinosaurPill.Database(databaseName, version, { migrations: migrations });
 
         db.on('ready', function() {
           expect(upgradeNeeded).to.be.true;
@@ -129,12 +132,12 @@
         });
       });
 
-      it('should migrate DinosaurPill.Database with a migrations.run function', function(done) {
+      it('should migrate with a migrations.run function', function(done) {
         var upgradeNeeded = false
           , upgrading = false
           , upgraded = false;
 
-        var db = new DinosaurPill.Database("dinosaur-pill-test", 1, { migrations: {
+        var db = new DinosaurPill.Database(databaseName, 1, { migrations: {
           run: function(db, newVersion, oldVersion) {
             expect(upgradeNeeded).to.be.true;
             expect(upgrading).to.be.true;
@@ -180,8 +183,8 @@
         });
       });
 
-      it('should not migrate DinosaurPill.Database, i.e. trigger only an explicit upgrade-needed event', function(done) {
-        var db = new DinosaurPill.Database("dinosaur-pill-test", 100)
+      it('should not migrate, i.e. only trigger an explicit "upgrade-needed" event', function(done) {
+        var db = new DinosaurPill.Database(databaseName, 100)
           , upgradeNeeded = false
           , upgrading = false
           , upgraded = false;
@@ -218,6 +221,150 @@
           upgraded = true;
         });
       });
+    });
+
+    describe('close()', function() {
+      afterEach(clearDatabase);
+      beforeEach(clearDatabase);
+
+      it('should properly close an open database', function(done) {
+        var db = new DinosaurPill.Database(databaseName, 1)
+          , closing = false
+          , closed  = false;
+
+        db.on('ready', function() {
+          db.close();
+        });
+
+        db.on('error', function(event) {
+          done(event);
+        });
+
+        db.on('closing', function() {
+          expect(closing).to.be.false;
+
+          expect(db.isOpen()).to.be.true;
+          expect(db.db).to.not.be.null;
+          expect(db.name).to.not.be.null;
+          expect(db.version).to.not.be.null;
+
+          closing = true;
+        });
+
+        db.on('closed', function() {
+          expect(closed).to.be.false;
+          expect(closing).to.be.true;
+
+          expect(db.isOpen()).to.be.false;
+          expect(db.db).to.be.null;
+          expect(db.name).to.be.null;
+          expect(db.version).to.be.null;
+          expect(db.migrations).to.be.null;
+
+          closed = true;
+
+          done();
+        });
+      });
+    });
+
+    describe('transaction()', function() {
+      afterEach(clearDatabase);
+      beforeEach(clearDatabase);
+
+      it('should not create a new transaction on a non-open database', function() {
+        var db = new DinosaurPill.Database(databaseName, 1, { open: false });
+
+        expect(db.isOpen()).to.be.false;
+        expect(db.db).to.be.null;
+        expect(db.transaction()).to.be.null;
+      });
+
+      it('should create a new transaction on an open database', function(done) {
+        var objectStores = [
+          "exampleOS1",
+          "exampleOS2",
+          "exampleOS3"
+         ], modes = [
+          "readonly",
+          "readwrite"
+         ];
+
+        var migrations = {
+          run: function(db, newVersion, oldVersion) {
+            _.each(objectStores, function(objectStore) {
+              db.createObjectStore(objectStore);
+            });
+          }
+        };
+
+        var db = new DinosaurPill.Database(databaseName, 1, { migrations: migrations })
+          , upgraded = false;
+
+        db.on('ready', function() {
+          expect(upgraded).to.be.true;
+
+          expect(db.isOpen()).to.be.true;
+          expect(db.db).to.be.an.instanceof(IDBDatabase);
+
+          var tx = db.transaction(objectStores);
+
+          expect(tx).to.not.be.null;
+          expect(tx.mode).to.equal("readonly");
+          expect(tx).to.be.an.instanceof(DinosaurPill.Database.Transaction);
+          expect(tx.db).to.equal(db);
+          expect(tx.transaction).to.be.an.instanceof(IDBTransaction);
+
+          expect(_.isEmpty(_.difference(tx.objectStores, objectStores))).to.be.true;
+
+          var sample = _.sample(objectStores)
+            , ptx = tx
+            , mode = _.sample(modes);
+
+          tx = db.transaction(sample, mode);
+
+          expect(tx).to.not.be.null;
+          expect(tx.mode).to.equal(mode);
+          expect(tx).to.be.an.instanceof(DinosaurPill.Database.Transaction);
+          expect(tx.db).to.equal(db);
+          expect(tx.transaction).to.be.an.instanceof(IDBTransaction);
+
+          expect(_.isEmpty(_.difference(tx.objectStores, [sample]))).to.be.true;
+
+          expect(tx).to.not.equal(ptx);
+
+          done();
+        });
+
+        db.on('error', function(event) {
+          done(event);
+        });
+
+        db.on('upgraded', function() {
+          expect(upgraded).to.be.false;
+
+          upgraded = true;
+        });
+      });
+    });
+  });
+
+  describe('DinosaurPill.Database.Transaction', function() {
+    describe('self', function() {
+      it('should support events', function() {
+        var proto = DinosaurPill.Database.prototype;
+
+        expect(proto).to.have.property('on');
+        expect(proto).to.have.property('off');
+        expect(proto).to.have.property('once');
+        expect(proto).to.have.property('trigger');
+      });
+    });
+
+    describe('constructor', function() {
+      afterEach(clearDatabase);
+      beforeEach(clearDatabase);
+
     });
   });
 })();
