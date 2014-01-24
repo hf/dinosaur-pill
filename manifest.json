@@ -3,9 +3,48 @@
   "name": "Dinosaur Pill",
   "version": "0.1",
 
+  "permissions": [
+    "tabs",
+    "browsingData",
+    "unlimitedStorage"
+  ],
+
+  "background": {
+    "scripts": [
+      "vendor/underscore/underscore.js",
+      "vendor/zepto/zepto.js",
+      "vendor/backbone/backbone.js",
+      "vendor/uri/uri.js",
+
+      "initialize.js",
+      "eyes.js",
+      "database.js",
+      "ledger.js",
+      "observer.js"
+    ],
+
+    "persistent": false
+  },
+
   "content_scripts": [
   ],
 
   "web_accessible_resources": [
+    "initialize.js",
+    "database.js",
+    "eyes.js",
+    "pill.html",
+
+    /* GENERAL LIBRARIES */
+    "vendor/backbone/backbone.js",
+    "vendor/zepto/zepto.js",
+    "vendor/lodash/lodash.js",
+    "vendor/uri/uri.js",
+
+    /* TESTING */
+    "vendor/mocha/mocha.js",
+    "vendor/mocha/mocha.css",
+    "vendor/chai/chai.js",
+    "test.html"
   ]
 }
