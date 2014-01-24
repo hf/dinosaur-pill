@@ -1,10 +1,22 @@
 chrome.tabs.onActivated.addListener(function(status) {
   chrome.tabs.get(status.tabId, function(tab) {
-    window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.fromTab(tab));
+    chrome.windows.get(tab.windowId, function(win) {
+      if (!win.focused || win.state !== "normal") {
+        window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.NOTHING);
+        return;
+      }
+
+      window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.fromTab(tab));
+    });
   });
 });
 
 chrome.windows.onFocusChanged.addListener(function(windowID) {
+  if (windowID === chrome.windows.WINDOW_ID_NONE) {
+    window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.NOTHING);
+    return;
+  }
+
   var query = {
     windowId:   windowID,
     windowType: "normal",
@@ -27,7 +39,8 @@ chrome.tabs.onUpdated.addListener(function(tabID, changeInfo, tab) {
   }
 
   chrome.windows.get(tab.windowId, function(win) {
-    if (!win.focused) {
+    console.log('win', win);
+    if (!win.focused || win.state !== "normal") {
       return;
     }
 
