@@ -14,7 +14,9 @@ window.DinosaurPill = (function(DinosaurPill) {
   _.extend(DinosaurPill, Backbone.Events);
 
   DinosaurPill.lookAt = function lookAt(lookingAt) {
-    DinosaurPill.trigger(DinosaurPill.Events.LOOKING_AT, lookingAt);
+    DinosaurPill.trigger(DinosaurPill.Events.LOOKING_AT, lookingAt, DinosaurPill.CURRENT_EYES);
+
+    DinosaurPill.CURRENT_EYES = lookingAt;
   };
 
   DinosaurPill.attemptToLookAt = function willLookAt(lookingAt) {
@@ -30,7 +32,7 @@ window.DinosaurPill = (function(DinosaurPill) {
       console.log('looking-at', lookingAt.toString());
     }, {});
 
-    DinosaurPill.on(DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt)) {
+    DinosaurPill.on(DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt) {
       console.log('attempt-looking-at', lookingAt.toString());
     }, {});
   }
