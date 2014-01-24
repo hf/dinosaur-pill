@@ -6,7 +6,8 @@
   "permissions": [
     "tabs",
     "browsingData",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "webNavigation"
   ],
 
   "background": {

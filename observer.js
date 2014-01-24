@@ -1,6 +1,4 @@
 chrome.tabs.onActivated.addListener(function(status) {
-  console.log(status);
-
   chrome.tabs.get(status.tabId, function(tab) {
     window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.fromTab(tab));
   });
@@ -35,4 +33,26 @@ chrome.tabs.onUpdated.addListener(function(tabID, changeInfo, tab) {
 
     window.DinosaurPill.lookAt(window.DinosaurPill.LookingAt.fromTab(tab));
   });
+});
+
+chrome.webNavigation.onBeforeNavigate.addListener(function(nav) {
+  window.DinosaurPill.attemptToLookAt(new window.DinosaurPill.LookingAt({
+    uri: nav.url,
+    tabID: nav.tabId,
+    timestamp: Date.now()
+  }));
+});
+
+chrome.webNavigation.onTabReplaced.addListener(function(nav) {
+  chrome.tabs.get(nav.tabId, function(tab) {
+    window.DinosaurPill.attemptToLookAt(window.DinosaurPill.LookingAt.fromTab(tab));
+  });
+});
+
+chrome.webNavigation.onHistoryStateUpdated.addListener(function(nav) {
+  window.DinosaurPill.attemptToLookAt(new window.DinosaurPill.LookingAt({
+    uri: nav.url,
+    tabID: nav.tabId,
+    timestamp: Date.now()
+  }));
 });

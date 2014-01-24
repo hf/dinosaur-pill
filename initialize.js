@@ -4,7 +4,8 @@ window.DinosaurPill = (function(DinosaurPill) {
       DEBUG: true,
 
       Events: {
-        LOOKING_AT: 'looking-at'
+        LOOKING_AT:   'looking-at',
+        ATTEMPT_LOOKING_AT: 'attempt-to-look-at'
       }
     };
   }
@@ -13,6 +14,10 @@ window.DinosaurPill = (function(DinosaurPill) {
 
   DinosaurPill.lookAt = function lookAt(lookingAt) {
     DinosaurPill.trigger(DinosaurPill.Events.LOOKING_AT, lookingAt);
+  };
+
+  DinosaurPill.attemptToLookAt = function willLookAt(lookingAt) {
+    DinosaurPill.trigger(DinosaurPill.Events.ATTEMPT_LOOKING_AT, lookingAt);
   };
 
   if (DinosaurPill.DEBUG) {

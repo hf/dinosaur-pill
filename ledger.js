@@ -4,7 +4,9 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
 
     this._queue = [];
 
-    this._db.on('success', function() {
+    this._db.on('ready', function() {
+      console.log('rready');
+
       this.trigger('dequeuing', this);
 
       _.each(this._queue, function(action) {
@@ -14,9 +16,9 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
       this._queue = null;
 
       this.trigger('dequeued', this);
-    });
+    }, this);
 
-    DinosaurPill.on(DinosaurPill.Events.LOOKING_AT, function(lookingAt) {
+    DinosaurPill.on(DinosaurPill.Events.LOOKING_AT + " " + DinosaurPill.Events.ATTEMPT_LOOKING_AT, function(lookingAt) {
       this.lookingAt(lookingAt);
     }, this);
   };
@@ -52,21 +54,134 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
     return new DinosaurPill.Database(Ledger.NAME, Ledger.VERSION, options);
   };
 
-  Ledger.Websites = Ledger.prototype.Websites = {};
-  Ledger.Websites.findForURI = Ledger.prototype.Websites.findForURI = function findForURI(db, uri, callback) {
-    console.log('here');
+  Ledger.sync = function sync(method, child, options) {
+    if (!(child.collection instanceof Ledger.Collection) || _.isNull(child.objectStore) || _.isUndefined(child.objectStore)) {
+      throw new Error("Child model does not specify a Ledger.Collection or an IDBObjectStore name.");
+    }
 
-    var tx = db.transaction("websites")
-      , rq = tx.get("websites", uri.domain());
+    switch (method) {
+      case 'create':
+        DinosaurPill.Ledger.enqueue(_.bind(function(db) {
+          var tx = db.transaction(child.collection.objectStore, "readwrite")
+            , os = tx.objectStore(child.collection.objectStore)
+            , rq = null;
 
-    tx.on('complete', function() {
-      callback(null, rq.result);
-    });
+          if (os.keyPath) {
+            rq = tx.add(os, child.toJSON());
+          } else {
+            rq = tx.add(os, child.toJSON(), child.id);
+          }
 
-    tx.on('error', function() {
-      callback(rq.error, null);
-    });
+          tx.on('complete', function() {
+            options.success(null, rq.result);
+          }, this);
+
+          tx.on('error', function() {
+            options.error(rq.error);
+          });
+        }, this));
+
+        break;
+
+      case 'read':
+        DinosaurPill.Ledger.enqueue(_.bind(function(db) {
+          var tx = db.transaction(child.collection.objectStore, "readonly")
+            , rq = tx.get(child.collection.objectStore, child.id);
+
+          tx.on('complete', function() {
+            options.success(rq.result);
+          }, this);
+
+          tx.on('error', function() {
+            options.error(rq.error);
+          });
+        }, this));
+
+        break;
+
+      case 'update':
+        DinosaurPill.Ledger.enqueue(_.bind(function(db) {
+          var tx = db.transaction(child.collection.objectStore, "readwrite")
+            , os = tx.objectStore(child.collection.objectStore)
+            , rq = null;
+
+          if (os.keyPath) {
+            tx.put(os, child.toJSON());
+          } else {
+            tx.put(os, child.toJSON(), child.id);
+          }
+
+          tx.on('complete', function() {
+            options.success(rq.result);
+          }, this);
+
+          tx.on('error', function() {
+            options.error(rq.error);
+          });
+        }, this));
+
+        break;
+
+      case 'delete':
+        DinosaurPill.Ledger.enqueue(_.bind(function(db) {
+          var tx = db.transaction(child.collection.objectStore, "readwrite")
+            , rq = tx.delete(child.collection.objectStore, child.id);
+
+          tx.on('complete', function() {
+            options.success(rq.result);
+          }, this);
+
+          tx.on('error', function() {
+            options.error(rq.error);
+          });
+        }, this));
+
+        break;
+    }
   };
+
+  Ledger.Model = Backbone.Model.extend({
+    objectStore: null,
+    sync: function sync() {
+      Ledger.sync.apply(this, arguments);
+    }
+  });
+
+  Ledger.Collection = Backbone.Collection.extend({
+    objectStore: null,
+    sync: function sync() {
+      Ledger.sync.apply(this, arguments);
+    },
+    fetch: null
+  });
+
+  Ledger.Website = Ledger.Model.extend({
+    objectStore: Ledger.ObjectStores.WEBSITES,
+    idAttribute: Ledger.ObjectStores.KeyPaths.WEBSITES,
+  }, {
+    findForURI: function findForURI(db, uri, callback) {
+      var websites = Ledger.ObjectStores.WEBSITES
+        , tx = db.transaction(websites)
+        , rq = tx.get(websites, uri.domain());
+
+      tx.on('complete', function() {
+        console.log(rq.result);
+        var result = rq.result;
+
+        if (result) {
+          result = new Ledger.Website(result);
+        }
+
+        callback(null, result);
+      });
+
+      tx.on('error', function() {
+        callback(rq.error, null);
+      });
+    }
+  });
+
+  _.extend(Ledger.prototype, _.pick(Ledger, 'Website', 'Model', 'Collection', 'sync', 'createDatabase', 'Migrations', 'NAME', 'VERSION'));
 
   _.extend(Ledger.prototype, Backbone.Events);
 
@@ -80,7 +195,7 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
 
   Ledger.prototype.enqueue = function enqueue(action) {
     if (_.isNull(this._queue)) {
-      action(db, this);
+      action(this.db, this);
       return;
     }
 
@@ -92,24 +207,26 @@ window.DinosaurPill.Ledger = (function ledger(DinosaurPill, Backbone) {
       return;
     }
 
-    Ledger.Websites.findForURI(this.db, lookingAt.uri, function(error, result) {
-      console.log('found-for-uri', error, result);
+    this.enqueue(_.bind(function() {
+        Ledger.Website.findForURI(this.db, lookingAt.uri, function(error, result) {
+        console.log('found-for-uri', error, result);
 
-      if (error) {
-        return;
-      }
+        if (error) {
+          return;
+        }
 
-      if (_.isObject(result)) {
-        chrome.tabs.update(lookingAt.tabID, { url: chrome.extension.getURL("/pill.html") });
+        if (_.isObject(result)) {
+          chrome.tabs.update(lookingAt.tabID, { url: chrome.extension.getURL("/pill.html") });
 
-        chrome.tabs.query({ url: ("*://*." + result.domain + "/*") }, function(tabs) {
-          console.log('tabs', tabs, ("*://*." + result.domain + "/*"));
-          _.each(tabs, function(tab) {
-            chrome.tabs.update(tab.id, { url: chrome.extension.getURL("/pill.html") });
+          chrome.tabs.query({ url: ("*://*." + result.get("domain") + "/*") }, function(tabs) {
+            console.log('tabs', tabs, ("*://*." + result.get("domain") + "/*"));
+            _.each(tabs, function(tab) {
+              chrome.tabs.update(tab.id, { url: chrome.extension.getURL("/pill.html") });
+            });
           });
-        });
-      }
-    });
+        }
+      });
+    }, this));
   };
 
   return new Ledger();
